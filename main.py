@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 import nemo.collections.asr as nemo_asr
+from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
 import torch
 import shutil
 import os
@@ -8,19 +9,22 @@ import tempfile
 
 app = FastAPI()
 
-# Configuration for documentation: 1.1b TDT model chosen for speed & zero-hallucination
-#MODEL_NAME = "nvidia/parakeet-tdt-1.1b"
+# Configuration for documentation: 0.6b-v2 TDT model chosen for speed & zero-hallucination
 MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v2"
 model = None
+inverse_normalizer = None
 
 @app.on_event("startup")
 async def load_model():
-    global model
+    global model, inverse_normalizer
     print(f"Loading {MODEL_NAME}...")
     # This should load from cache since we pre-downloaded it in the Dockerfile
     model = nemo_asr.models.ASRModel.from_pretrained(model_name=MODEL_NAME)
     model.to("cuda" if torch.cuda.is_available() else "cpu")
-    print("Model loaded and ready.")
+    
+    print("Loading InverseNormalizer...")
+    inverse_normalizer = InverseNormalizer(lang='en')
+    print("Model and Normalizer loaded and ready.")
 
 @app.get("/health")
 async def health():
@@ -51,4 +55,9 @@ async def transcribe(
 
         # Inference
         transcriptions = model.transcribe([output_path])
-        return {"text": transcriptions[0]}
+        raw_text = transcriptions[0]
+        
+        # Apply Inverse Normalization (e.g. "one hundred" -> "100")
+        final_text = inverse_normalizer.inverse_normalize(raw_text, verbose=False) if inverse_normalizer else raw_text
+        
+        return {"text": final_text}
