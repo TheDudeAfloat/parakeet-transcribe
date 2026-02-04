@@ -9,7 +9,8 @@ import tempfile
 app = FastAPI()
 
 # Configuration for documentation: 1.1b TDT model chosen for speed & zero-hallucination
-MODEL_NAME = "nvidia/parakeet-tdt-1.1b"
+#MODEL_NAME = "nvidia/parakeet-tdt-1.1b"
+MODEL_NAME = "nvidia/parakeet-tdt-0.6b"
 model = None
 
 @app.on_event("startup")
