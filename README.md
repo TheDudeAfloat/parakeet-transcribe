@@ -2,6 +2,11 @@
 
 A high-performance, GPU-accelerated Automatic Speech Recognition (ASR) API using NVIDIA's **Parakeet-TDT** models. Designed as a drop-in replacement for `speeches.ai` (OpenAI-compatible) for transcribing narrow-band public safety radio traffic with high accuracy and zero hallucinations.
 
+## 🚀 Solving the "Whisper Looping" Problem
+If you've used Faster-Whisper for radio dispatch, you've likely seen "looping" hallucinations where the model repeats the initial prompt or previous sentences during periods of static or silence. 
+
+**Parakeet-TDT** (Token-and-Duration Transducer) solves this by explicitly modeling the duration of speech. If there is no speech, the model emits nothing, resulting in much cleaner logs for narrow-band radio traffic.
+
 ## Key Features
 
 -   **Zero "Prompt-Bleeding":** Eliminates hallucinations where the model repeats the prompt during silence.
