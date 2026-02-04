@@ -1,0 +1,27 @@
+services:
+  parakeet-asr:
+    build: .
+    container_name: parakeet-asr-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTHONUNBUFFERED=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # Gives the 1.1b model time to load into VRAM
+
+    # Volume mount if you want to debug audio files locally
+    volumes:
+      - ./temp_audio:/tmp/asr_processing
