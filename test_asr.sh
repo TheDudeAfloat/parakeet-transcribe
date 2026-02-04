@@ -1,7 +1,7 @@
 #!/bin/bash
 # test_asr.sh
 
-API_URL="http://localhost:8000/v1/audio/transcriptions"
+API_URL="http://localhost:8007/v1/audio/transcriptions"
 FILENAME=$1
 PROMPT="HCF 1A DISP - Engine 1, Medic 5" # This will be ignored by Parakeet
 
