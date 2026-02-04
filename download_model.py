@@ -1,8 +1,8 @@
 import nemo.collections.asr as nemo_asr
 import os
 
-# Configuration matching main.py
-MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v2"
+# Configuration from environment
+MODEL_NAME = os.getenv("MODEL_NAME", "nvidia/parakeet-tdt-0.6b-v2")
 
 print(f"Pre-loading {MODEL_NAME} for Docker caching...")
 

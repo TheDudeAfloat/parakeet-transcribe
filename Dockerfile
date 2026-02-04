@@ -1,6 +1,10 @@
 FROM nvcr.io/nvidia/pytorch:24.07-py3
 
+# Build Arguments
+ARG MODEL_NAME=nvidia/parakeet-tdt-0.6b-v2
+
 # Set environment variables
+ENV MODEL_NAME=${MODEL_NAME}
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 

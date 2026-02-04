@@ -1,15 +1,19 @@
 services:
   parakeet-asr:
-    build: .
+    build:
+      context: .
+      args:
+        MODEL_NAME: ${MODEL_NAME}
     container_name: parakeet-asr-api
     restart: always
     ports:
-      - "8007:8007"
+      - "${PORT:-8007}:8007"
     shm_size: '2gb'    # Fixes the SHMEM allocation limit error
     ulimits:
       memlock: -1      # Prevents memory from being paged out
       stack: 67108864
     environment:
+      - MODEL_NAME=${MODEL_NAME}
       - NVIDIA_VISIBLE_DEVICES=all
       - PYTHONUNBUFFERED=1
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True # Helps with fragmentation

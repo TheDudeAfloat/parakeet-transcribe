@@ -9,8 +9,8 @@ import tempfile
 
 app = FastAPI()
 
-# Configuration for documentation: 0.6b-v2 TDT model chosen for speed & zero-hallucination
-MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v2"
+# Configuration from environment
+MODEL_NAME = os.getenv("MODEL_NAME", "nvidia/parakeet-tdt-0.6b-v2")
 model = None
 inverse_normalizer = None
 
@@ -63,10 +63,13 @@ async def transcribe(
         raw_text = hyp.text if hasattr(hyp, 'text') else str(hyp)
         
         # 2. Apply Inverse Normalization (e.g., "one hundred" -> "100")
+        final_text = raw_text
         if inverse_normalizer and raw_text:
-            final_text = inverse_normalizer.inverse_normalize(raw_text, verbose=False)
-        else:
-            final_text = raw_text
+            try:
+                final_text = inverse_normalizer.inverse_normalize(raw_text, verbose=False)
+            except Exception as e:
+                print(f"Inverse Normalization failed: {e}")
+                # Fallback to raw text is already set
         
         # 3. Return clean JSON (Drop-in compatibility for Speeches.ai)
         return {"text": final_text}
