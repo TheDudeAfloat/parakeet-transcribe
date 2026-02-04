@@ -54,10 +54,19 @@ async def transcribe(
             raise HTTPException(status_code=400, detail="Audio processing failed")
 
         # Inference
-        transcriptions = model.transcribe([output_path])
-        raw_text = transcriptions[0]
+        # Parakeet-TDT returns a list of Hypothesis objects
+        results = model.transcribe([output_path])
         
-        # Apply Inverse Normalization (e.g. "one hundred" -> "100")
-        final_text = inverse_normalizer.inverse_normalize(raw_text, verbose=False) if inverse_normalizer else raw_text
+        # 1. Extract raw text from the first hypothesis result
+        # Check if the result is a Hypothesis object or a plain string (older models)
+        hyp = results[0]
+        raw_text = hyp.text if hasattr(hyp, 'text') else str(hyp)
         
+        # 2. Apply Inverse Normalization (e.g., "one hundred" -> "100")
+        if inverse_normalizer and raw_text:
+            final_text = inverse_normalizer.inverse_normalize(raw_text, verbose=False)
+        else:
+            final_text = raw_text
+        
+        # 3. Return clean JSON (Drop-in compatibility for Speeches.ai)
         return {"text": final_text}
