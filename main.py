@@ -44,10 +44,12 @@ async def transcribe(
             shutil.copyfileobj(file.file, buffer)
 
         # Resample any source (8kHz, 44.1kHz, etc.) to 16kHz Mono for Parakeet
+        # Added filters: bandpass (120-3600Hz), compression, and loudness normalization for radio traffic
         try:
             subprocess.run([
                 'ffmpeg', '-y', '-i', input_path,
                 '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le',
+                '-af', 'highpass=f=120,lowpass=f=3600,acompressor=threshold=-24dB:ratio=4:attack=5:release=100,loudnorm=I=-16:LRA=11:TP=-1.5',
                 output_path
             ], check=True, capture_output=True)
         except subprocess.CalledProcessError as e:

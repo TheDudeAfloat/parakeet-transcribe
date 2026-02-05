@@ -26,7 +26,13 @@ The API must accept a `POST` request to `/v1/audio/transcriptions` and support:
 ### 3.2 Audio Preprocessing
 
 * The system must accept `.m4a`, `.mp3`, and `.wav` formats.
-* **Transformation:** All incoming audio must be resampled to **16,000Hz, Mono, 16-bit PCM** before being passed to the NeMo model.
+* **Transformation:** All incoming audio must be processed with the following `ffmpeg` chain before inference:
+    * **Format:** Resampled to **16,000Hz, Mono, 16-bit PCM**.
+    * **Filters:**
+        * Highpass: `f=120` (Remove rumble).
+        * Lowpass: `f=3600` (Remove high-freq noise/hiss).
+        * Compression: `threshold=-24dB:ratio=4` (Stabilize dynamic range).
+        * Loudness: `loudnorm=I=-16:LRA=11:TP=-1.5` (Normalize volume).
 * **Input Context:** Note that source audio is often 8kHz (narrow-band radio). The resampling logic must handle upscaling without introducing artifacts.
 
 ### 3.3 Model Selection
