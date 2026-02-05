@@ -67,6 +67,7 @@ def _build_ffmpeg_command(input_path: str, output_path: str) -> list[str]:
     return args
 
 
+
 def _run_ffmpeg(input_path: str, output_path: str) -> None:
     cmd = _build_ffmpeg_command(input_path, output_path)
     try:
@@ -74,6 +75,19 @@ def _run_ffmpeg(input_path: str, output_path: str) -> None:
     except subprocess.CalledProcessError as exc:
         logging.error("ffmpeg failed: %s", exc.stderr.strip())
         raise HTTPException(status_code=400, detail="Audio processing failed") from exc
+
+
+# Helper to save an uploaded file-like object to disk without blocking the event loop.
+def _save_upload_to_path(src_fileobj, dest_path: str) -> None:
+    """Save an uploaded file-like object to disk without blocking the event loop."""
+    # Best-effort rewind in case the fileobj has been read elsewhere
+    try:
+        src_fileobj.seek(0)
+    except Exception:  # noqa: BLE001
+        pass
+
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(src_fileobj, buffer)
 
 
 def _transcribe_file(output_path: str) -> str:
@@ -106,6 +120,10 @@ async def transcription_worker() -> None:
             logging.info(
                 "Preprocessing complete in %.2fs", time.perf_counter() - preprocess_start
             )
+
+            # If the request timed out while we were preprocessing, skip transcription work.
+            if task.future.cancelled():
+                continue
 
             transcribe_start = time.perf_counter()
             async with transcribe_semaphore:
@@ -181,16 +199,16 @@ async def transcribe(
     future.add_done_callback(_cleanup)
 
     try:
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        await anyio.to_thread.run_sync(_save_upload_to_path, file.file, input_path)
 
         task = TranscriptionTask(input_path=input_path, output_path=output_path, future=future)
 
-        if task_queue.full():
+        try:
+            task_queue.put_nowait(task)
+        except asyncio.QueueFull:
             _cleanup()
             raise HTTPException(status_code=429, detail="Too many pending requests. Please retry.")
 
-        task_queue.put_nowait(task)
         logging.info(
             "Enqueued transcription task. Queue depth: %d/%d",
             task_queue.qsize(),
