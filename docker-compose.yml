@@ -3,20 +3,22 @@ services:
     build:
       context: .
       args:
-        MODEL_NAME: ${MODEL_NAME}
+        MODEL_NAME: ${MODEL_NAME:-nvidia/parakeet-tdt-0.6b-v2}
     container_name: parakeet-asr-api
     restart: always
     ports:
       - "${PORT:-8007}:8007"
     shm_size: '2gb'    # Fixes the SHMEM allocation limit error
+    # ipc: host  # Optional: can help some PyTorch/NCCL/shared-memory workloads
     ulimits:
       memlock: -1      # Prevents memory from being paged out
       stack: 67108864
     environment:
-      - MODEL_NAME=${MODEL_NAME}
+      - MODEL_NAME=${MODEL_NAME:-nvidia/parakeet-tdt-0.6b-v2}
       - NVIDIA_VISIBLE_DEVICES=all
       - PYTHONUNBUFFERED=1
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True # Helps with fragmentation
+    # GPU reservations: used by modern 'docker compose' (Compose Deploy spec). Older compose implementations may ignore 'deploy:'
     deploy:
       resources:
         reservations:
@@ -25,7 +27,7 @@ services:
               count: all
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:8007/health').read()\""]
       interval: 30s
       timeout: 10s
       retries: 3
